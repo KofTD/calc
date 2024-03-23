@@ -1,14 +1,16 @@
+#include "operand.h"
 #include <iostream>
 #include <map>
 #include <stack>
-#include <string>
-#include <string_view>
+//#include <string>
+//#include <string_view>
 #include <vector>
 using std::string;
 using std::vector;
 
 std::map<string, int8_t> operation_priority = {
         {"(", 0},
+        {"->", 1},
         {"+", 1},
         {"-", 1},
         {"*", 2},
@@ -21,11 +23,13 @@ vector<string> to_postfix_notation(std::string infix_notation) {
     std::stack<string> stack;
     string operand;
 
-    for (size_t i = 0; i < infix_notation.length(); i++) {
+    infix_notation += ' ';
+
+    for (size_t i = 0; i < infix_notation.length() - 1; i++) {
         char symbol = infix_notation[i];
         if (symbol == ' ')
             continue;
-        if (isdigit(symbol) || isalpha(symbol) /*|| postfix_function */) {
+        if (isdigit(symbol) || isalpha(symbol) || symbol == '.' || symbol == ',' /*|| postfix_function */) {
             operand += symbol;
         } else {
             if (!operand.empty()) {
@@ -44,13 +48,12 @@ vector<string> to_postfix_notation(std::string infix_notation) {
             } else {
                 string oper;
                 oper.push_back(symbol);
-                if (symbol == '*') {
-                    if (i + 1 < infix_notation.length()) {
-                        if (infix_notation[i + 1] == '*') {
-                            oper = "**";
-                            i++;
-                        }
-                    }
+                if (symbol == '*' && infix_notation[i + 1] == '*') {
+                    oper = "**";
+                    i++;
+                } else if (symbol == '-' && infix_notation[i + 1] == '>') {
+                    oper = "->";
+                    i++;
                 }
 
                 while (!stack.empty() && (operation_priority[stack.top()] >= operation_priority[oper])) {
@@ -81,12 +84,16 @@ int main() {
         std::string input;
         std::getline(std::cin, input);
 
-        auto res = to_postfix_notation(input);
+        auto res = expression::split_prefix_and_unit("Qg");
 
-        for (const auto a: res) {
-            std::cout << a << '\n';
-        }
-        std::cout << std::endl;
+        std::cout << int(res.first) << ' ' << res.second << std::endl;
+
+        //        auto res = to_postfix_notation(input);
+        //
+        //        for (const auto a: res) {
+        //            std::cout << a << '\n';
+        //        }
+        //        std::cout << std::endl;
 
         if (input == "q") {
             break;
