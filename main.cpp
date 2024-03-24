@@ -18,6 +18,38 @@ std::map<string, int8_t> operation_priority = {
         {"**", 3},
 };
 
+expression::operand calculate(vector<string> postfix_notation) {
+    std::stack<expression::operand> calculations;
+    for (const auto &notation_part: postfix_notation) {
+        if (operation_priority.contains(notation_part)) {
+            if (notation_part == "->") {
+                auto op = calculations.top();
+                calculations.pop();
+                // convert
+            } else {
+                auto op1 = calculations.top();
+                calculations.pop();
+                auto op2 = calculations.top();
+                calculations.pop();
+
+                if (notation_part == "+") {
+                    calculations.push(op1 + op2);
+                } else if (notation_part == "-") {
+                    calculations.push(op2 - op1);
+                } else if (notation_part == "*") {
+                    calculations.push(op1 * op2);
+                } else if (notation_part == "/") {
+                    calculations.push(op2 / op1);
+                } else if (notation_part == "**") {
+                    calculations.push(op2.power(op1));
+                }
+            }
+        }
+    }
+
+    return expression::operand("11");
+}
+
 vector<string> to_postfix_notation(std::string infix_notation) {
     vector<string> result;
     std::stack<string> stack;
@@ -84,12 +116,12 @@ int main() {
         std::string input;
         std::getline(std::cin, input);
 
-        auto res = expression::split_prefix_and_unit("Qg");
+        auto res = to_postfix_notation(input);
 
-        std::cout << int(res.first) << ' ' << res.second << std::endl;
+        auto calc_res = calculate(res);
 
-        //        auto res = to_postfix_notation(input);
-        //
+        std::cout<<calc_res<<std::endl;
+
         //        for (const auto a: res) {
         //            std::cout << a << '\n';
         //        }

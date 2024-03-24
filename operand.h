@@ -2,8 +2,10 @@
 #define CALCULATOR_OPERAND_H
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <map>
+#include <ostream>
 #include <string>
 
 namespace expression {
@@ -37,58 +39,22 @@ namespace expression {
         quecto = -30
     };
 
-    std::pair<prefixes, std::string> split_prefix_and_unit(std::string prefix_and_unit);
+    std::pair<prefixes, std::string> split_prefix_and_unit(const std::string &prefix_and_unit);
 
-    std::array<int8_t, 7> convert_to_basic_units(std::string unit) {
-        // s, m, g, A, K, mol, cd
-        if (unit == "Hz")
-            return {-1, 0, 0, 0, 0, 0, 0};
-        else if (unit == "N")
-            return {-2, 1, 3, 0, 0, 0, 0};
-        else if (unit == "Pa")
-            return {-2, -1, 3, 0, 0, 0, 0};
-        else if (unit == "J")
-            return {-2, 2, 3, 0, 0, 0, 0};
-        else if (unit == "W")
-            return {-3, 2, 3, 0, 0, 0, 0};
-        else if (unit == "C")
-            return {1, 0, 0, 1, 0, 0, 0};
-        else if (unit == "V")
-            return {-3, 2, 3, -1, 0, 0, 0};
-        else if (unit == "F")
-            return {4, -2, -3, 2, 0, 0, 0};
-        else if (unit == "ohm")
-            return {-3, 2, 3, -2, 0, 0, 0};
-        else if (unit == "S")
-            return {3, -2, -3, 2, 0, 0, 0};
-        else if (unit == "Wb")
-            return {-2, 2, 3, -1, 0, 0, 0};
-        else if (unit == "T")
-            return {-2, 0, 3, -1, 0, 0, 0};
-        else if (unit == "H")
-            return {-2, 2, 3, -2, 0, 0, 0};
-        else if (unit == "lm")
-            return {0, 0, 0, 0, 0, 0, 1};
-        else if (unit == "lx")
-            return {0, -2, 0, 0, 0, 0, 1};
-        else if (unit == "Bq")
-            return {-1, 0, 0, 0, 0, 0, 0};
-        else if (unit == "Gy" || unit == "Sv")
-            return {-2, 2, 0, 0, 0, 0, 0};
-        else if (unit == "kat")
-            return {-1, 0, 0, 0, 0, 1, 0};
-        else
-            throw std::exception();
-    }
+    std::array<int8_t, 7> convert_to_basic_units(const std::string &unit);
+
+    bool is_equal_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs);
+
+    std::array<int8_t, 7> sum_b_u_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs);
+
+    std::array<int8_t, 7> dif_b_u_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs);
 
     class operand {
     public:
-        operand(const std::string &number) {
+        explicit operand(const std::string &number) {
             this->number = std::stod(number);
-            this->prefix = prefixes::null;
-            this->basic_units_powers.fill(0);
         }
-        operand(const std::string &number, std::string unit) {
+        operand(const std::string &number, const std::string &unit) {
             this->number = std::stod(number);
 
             auto prefix_and_unit = split_prefix_and_unit(unit);
@@ -97,11 +63,78 @@ namespace expression {
             this->basic_units_powers = convert_to_basic_units(prefix_and_unit.second);
         }
 
+        operand operator+(const operand &rhs) const {
+            if (!is_equal_powers(this->basic_units_powers, rhs.basic_units_powers))
+                throw std::exception();
+
+            double n_number = (this->number * int8_t(this->prefix)) + (rhs.number * int8_t(rhs.prefix));
+            prefixes n_prefix = std::min(this->prefix, rhs.prefix);
+
+            if (static_cast<int8_t>(n_prefix) != 0)
+                n_number /= static_cast<double>(n_prefix);
+
+            return {n_number, n_prefix, this->basic_units_powers};
+        }
+        operand operator-(const operand &rhs) const {
+            if (!is_equal_powers(this->basic_units_powers, rhs.basic_units_powers))
+                throw std::exception();
+
+            double n_number = (this->number * int8_t(this->prefix)) - (rhs.number * int8_t(rhs.prefix));
+            prefixes n_prefix = std::min(this->prefix, rhs.prefix);
+
+            if (static_cast<int8_t>(n_prefix) != 0)
+                n_number /= static_cast<double>(n_prefix);
+
+            return {n_number, n_prefix, this->basic_units_powers};
+        }
+        operand operator*(const operand &rhs) const {
+            double n_number = this->number * int8_t(this->prefix) * rhs.number * int8_t(rhs.prefix);
+            prefixes n_prefix = std::min(this->prefix, rhs.prefix);
+
+            return {n_number, n_prefix, sum_b_u_powers(this->basic_units_powers, rhs.basic_units_powers)};
+        }
+        operand operator/(const operand &rhs) const {
+            double n_number = this->number * int8_t(this->prefix) / rhs.number * int8_t(rhs.prefix);
+            prefixes n_prefix = std::min(this->prefix, rhs.prefix);
+
+            return {n_number, n_prefix, dif_b_u_powers(this->basic_units_powers, rhs.basic_units_powers)};
+        }
+
+        [[nodiscard]] operand power(const operand &rhs) const {
+            if (!is_equal_powers(rhs.basic_units_powers, {0, 0, 0, 0, 0, 0, 0}))
+                throw std::exception();
+
+            double n_number = std::pow(this->number, rhs.number);
+
+            std::array<int8_t, 7> n_powers = {0, 0, 0, 0, 0, 0, 0};
+
+            for (size_t i = 0; i < n_powers.size(); ++i) {
+                n_powers[i] = static_cast<int8_t>(basic_units_powers[i] * static_cast<int8_t>(rhs.number));
+            }
+
+            return {n_number, this->prefix, n_powers};
+        }
+
+        friend std::ostream &operator<<(std::ostream &out, const operand &op) {
+            out << op.number;
+
+            return out;
+        }
+
+
+    protected:
+        operand(double number, prefixes prefix, std::array<int8_t, 7> b_u_powers) {
+            this->number = number;
+            this->prefix = prefix;
+            this->basic_units_powers = b_u_powers;
+        }
+
     private:
         double number;
-        prefixes prefix;
-        std::array<int8_t, 7> basic_units_powers;// s, m, g, A, K, mol, cd
+        prefixes prefix = prefixes::null;
+        std::array<int8_t, 7> basic_units_powers = {0, 0, 0, 0, 0, 0, 0};// s, m, g, A, K, mol, cd
     };
+
 
 }// namespace expression
 

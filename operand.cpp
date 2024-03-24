@@ -53,7 +53,7 @@ namespace expression {
     }
 
 
-    std::pair<prefixes, std::string> split_prefix_and_unit(std::string prefix_and_unit) {
+    std::pair<prefixes, std::string> split_prefix_and_unit(const std::string& prefix_and_unit) {
         std::pair<prefixes, std::string> result;
         const std::string prefixes_string = "QRYZEPTGMkhdcmnpfazyrq";
 
@@ -79,5 +79,81 @@ namespace expression {
         }
 
         return result;
+    }
+    std::array<int8_t, 7> convert_to_basic_units(const std::string &unit) {
+        // s, m, g, A, K, mol, cd
+        if (unit == "s")
+            return {1, 0, 0, 0, 0, 0, 0};
+        else if (unit == "m")
+            return {0, 1, 0, 0, 0, 0, 0};
+        else if (unit == "g")
+            return {0, 0, 1, 0, 0, 0, 0};
+        else if (unit == "A")
+            return {0, 0, 0, 1, 0, 0, 0};
+        else if (unit == "K")
+            return {0, 0, 0, 0, 1, 0, 0};
+        else if (unit == "mol")
+            return {0, 0, 0, 0, 0, 1, 0};
+        else if (unit == "cd" || unit == "lm")
+            return {0, 0, 0, 0, 0, 0, 1};
+        else if (unit == "Hz" || unit == "Bq")
+            return {-1, 0, 0, 0, 0, 0, 0};
+        else if (unit == "N")
+            return {-2, 1, 3, 0, 0, 0, 0};
+        else if (unit == "Pa")
+            return {-2, -1, 3, 0, 0, 0, 0};
+        else if (unit == "J")
+            return {-2, 2, 3, 0, 0, 0, 0};
+        else if (unit == "W")
+            return {-3, 2, 3, 0, 0, 0, 0};
+        else if (unit == "C")
+            return {1, 0, 0, 1, 0, 0, 0};
+        else if (unit == "V")
+            return {-3, 2, 3, -1, 0, 0, 0};
+        else if (unit == "F")
+            return {4, -2, -3, 2, 0, 0, 0};
+        else if (unit == "ohm")
+            return {-3, 2, 3, -2, 0, 0, 0};
+        else if (unit == "S")
+            return {3, -2, -3, 2, 0, 0, 0};
+        else if (unit == "Wb")
+            return {-2, 2, 3, -1, 0, 0, 0};
+        else if (unit == "T")
+            return {-2, 0, 3, -1, 0, 0, 0};
+        else if (unit == "H")
+            return {-2, 2, 3, -2, 0, 0, 0};
+        else if (unit == "lx")
+            return {0, -2, 0, 0, 0, 0, 1};
+        else if (unit == "Gy" || unit == "Sv")
+            return {-2, 2, 0, 0, 0, 0, 0};
+        else if (unit == "kat")
+            return {-1, 0, 0, 0, 0, 1, 0};
+        else
+            throw std::exception();
+    }
+    std::array<int8_t, 7> dif_b_u_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs) {
+        std::array<int8_t, 7> result = {0, 0, 0, 0, 0, 0, 0};
+
+        for (size_t i = 0; i < lhs.size(); ++i) {
+            result[i] = static_cast<int8_t>(lhs[i] - rhs[i]);
+        }
+
+        return result;
+    }
+    std::array<int8_t, 7> sum_b_u_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs) {
+        std::array<int8_t, 7> result = {0, 0, 0, 0, 0, 0, 0};
+
+        for (size_t i = 0; i < lhs.size(); ++i) {
+            result[i] = static_cast<int8_t>(lhs[i] + rhs[i]);
+        }
+
+        return result;
+    }
+    bool is_equal_powers(std::array<int8_t, 7> lhs, std::array<int8_t, 7> rhs) {
+        for (size_t i = 0; i < lhs.size(); i++) {
+            if (lhs[i] != rhs[i])
+                return false;
+        }
+        return true;
     }
 }// namespace expression
