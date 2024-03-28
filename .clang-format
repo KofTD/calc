@@ -2,8 +2,9 @@
 BasedOnStyle: Google
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
-AlignTrailingComments: Always
-AllowShortCompoundRequirementOnASingleLine: true
-IndentWidth: 2
+AlignTrailingComments:
+  Kind: Always
+#AllowShortCompoundRequirementOnASingleLine: true
+IndentWidth: 4
 TabWidth: 4
 UseTab: Never
