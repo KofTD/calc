@@ -6,14 +6,16 @@
 
 #include "notation_operations.h"
 #include "operand.h"
+using std::cout;
 using std::string;
 using std::vector;
 
 expression::operand calculate(const vector<string> &postfix_notation) {
+    using namespace std::literals;
     std::stack<expression::operand> calculations;
-    for (const auto &notation_part : postfix_notation) {
-        if (operation_priority.contains(notation_part)) {
-            if (notation_part == "->") {
+    for (const std::string &token : postfix_notation) {
+        if (operation_priority.contains(token)) {
+            if (token == "->") {
                 auto oper = calculations.top();
                 calculations.pop();
                 // convert
@@ -23,30 +25,31 @@ expression::operand calculate(const vector<string> &postfix_notation) {
                 auto op2 = calculations.top();
                 calculations.pop();
 
-                if (notation_part == "+") {
+                if (token == "+") {
                     calculations.push(op1 + op2);
-                } else if (notation_part == "-") {
+                } else if (token == "-") {
                     calculations.push(op2 - op1);
-                } else if (notation_part == "*") {
+                } else if (token == "*") {
                     calculations.push(op1 * op2);
-                } else if (notation_part == "/") {
+                } else if (token == "/") {
                     calculations.push(op2 / op1);
-                } else if (notation_part == "**") {
+                } else if (token == "**") {
                     calculations.push(op2.power(op1));
                 }
             }
         } else {
-            auto start_of_unit_part =
-                std::find_if(notation_part.begin(), notation_part.end(),
-                             [](char chr) { return isalpha(chr) != 0; });
-            if (start_of_unit_part == notation_part.begin()) {
-                calculations.emplace("1", notation_part);
+            auto has_digits = [](std::string token) {
+                namespace sr = std::ranges;
+                return sr::find_if(token, [](char sym) {
+                           return isdigit(sym) != 0;
+                       }) != sr::end(token);
+            };
+            if (!has_digits(token)) {
+                std::string buf = "1";
+                buf.append(token);
+                calculations.emplace(buf);
             } else {
-                calculations.emplace(
-                    notation_part.substr(0, std::distance(notation_part.begin(),
-                                                          start_of_unit_part)),
-                    notation_part.substr(std::distance(notation_part.begin(),
-                                                       start_of_unit_part)));
+                calculations.emplace(token);
             }
         }
     }
@@ -56,7 +59,7 @@ expression::operand calculate(const vector<string> &postfix_notation) {
 
 int main() {
     while (true) {
-        std::cout << ">>> ";
+        cout << ">>> ";
         std::string input;
         std::getline(std::cin, input);
 
@@ -64,19 +67,11 @@ int main() {
             break;
         }
 
-        try {
-            auto res = to_postfix_notation(input);
-            for (const auto &part : res) {
-                std::cout << part << '\n';
-            }
-            std::cout << '\n';
+        auto postfix_notation = to_postfix_notation(input);
 
-            auto calc_res = calculate(res);
+        auto calculation_result = calculate(postfix_notation);
 
-            std::cout << calc_res << '\n';
-        } catch (const std::exception &err) {
-            std::cout << err.what() << '\n';
-        }
+        cout << calculation_result.to_string() << '\n';
     }
 
     return 0;

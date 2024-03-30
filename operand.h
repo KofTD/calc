@@ -1,13 +1,10 @@
 #ifndef CALCULATOR_OPERAND_H
 #define CALCULATOR_OPERAND_H
 
-#include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <map>
 #include <ostream>
-#include <ranges>
 #include <string>
 
 namespace expression {
@@ -104,14 +101,8 @@ const std::map<std::string, std::array<int8_t, n_of_base_units>>
 
 double ten_to_pow(int8_t power);
 
-std::pair<int8_t, std::string> split_prefix_and_unit(
-    const std::string &prefix_and_unit);
-
-std::array<int8_t, n_of_base_units> convert_to_basic_units(
-    const std::string &unit);
-
-bool is_equal_powers(std::array<int8_t, n_of_base_units> lhs,
-                     std::array<int8_t, n_of_base_units> rhs);
+bool is_equal(std::array<int8_t, n_of_base_units> lhs,
+              std::array<int8_t, n_of_base_units> rhs);
 
 std::array<int8_t, n_of_base_units> sum_b_u_powers(
     std::array<int8_t, n_of_base_units> lhs,
@@ -123,9 +114,10 @@ std::array<int8_t, n_of_base_units> dif_b_u_powers(
 
 class operand {
    public:
-    explicit operand(const std::string &number) : number(std::stod(number)) {}
+    // explicit operand(const std::string &number) : number(std::stod(number))
+    // {}
 
-    operand(const std::string &number, const std::string &unit);
+    explicit operand(std::string token);
 
     operand operator+(const operand &rhs) const;
     operand operator-(const operand &rhs) const;
@@ -134,7 +126,7 @@ class operand {
 
     [[nodiscard]] operand power(const operand &rhs) const;
 
-    friend std::ostream &operator<<(std::ostream &out, const operand &oper);
+    std::string to_string();
 
    protected:
     operand(double number, int8_t prefix,
