@@ -4,58 +4,14 @@
 #include <stack>
 #include <vector>
 
+#include "calculations.h"
 #include "notation_operations.h"
 #include "operand.h"
+#include "variables.h"
+
 using std::cout;
 using std::string;
 using std::vector;
-
-expression::operand calculate(const vector<string> &postfix_notation) {
-    using namespace std::literals;
-    std::stack<expression::operand> calculations;
-    for (const std::string &token : postfix_notation) {
-        if (operation_priority.contains(token)) {
-            if (token == "->") {
-                auto oper = calculations.top();
-                calculations.pop();
-                // convert
-            } else {
-                auto op1 = calculations.top();
-                calculations.pop();
-                auto op2 = calculations.top();
-                calculations.pop();
-
-                if (token == "+") {
-                    calculations.push(op1 + op2);
-                } else if (token == "-") {
-                    calculations.push(op2 - op1);
-                } else if (token == "*") {
-                    calculations.push(op1 * op2);
-                } else if (token == "/") {
-                    calculations.push(op2 / op1);
-                } else if (token == "**") {
-                    calculations.push(op2.power(op1));
-                }
-            }
-        } else {
-            auto has_digits = [](std::string token) {
-                namespace sr = std::ranges;
-                return sr::find_if(token, [](char sym) {
-                           return isdigit(sym) != 0;
-                       }) != sr::end(token);
-            };
-            if (!has_digits(token)) {
-                std::string buf = "1";
-                buf.append(token);
-                calculations.emplace(buf);
-            } else {
-                calculations.emplace(token);
-            }
-        }
-    }
-
-    return calculations.top();
-}
 
 int main() {
     while (true) {
@@ -63,15 +19,42 @@ int main() {
         std::string input;
         std::getline(std::cin, input);
 
-        if (input == "q") {
+        if (input == "q" || input == "exit") {
             break;
         }
 
-        auto postfix_notation = to_postfix_notation(input);
+        try {
+            auto variables = load_variables();
 
-        auto calculation_result = calculate(postfix_notation);
+            auto tokens = split_into_tokens(input);
 
-        cout << calculation_result.to_string() << '\n';
+            if (tokens[0].substr(0, 3) == "let") {
+                auto var_name = tokens[0].substr(3);
+                std::vector<std::string> expr_tokens{tokens.begin() + 2,
+                                                     tokens.end()};
+
+                variables[var_name] =
+                    calculate(to_postfix_notation(expr_tokens), variables);
+            }
+
+            auto postfix_notation = to_postfix_notation(tokens);
+
+            // for (const auto &token : postfix_notation) cout << token << '\n';
+
+            auto calculation_result = calculate(postfix_notation, variables);
+            variables["ans"] = calculation_result;
+            std::wcout << calculation_result.to_wstring() << '\n';
+        } catch (const expression::unequal_units_err &err) {
+            const auto &output_message = err.get_output_message();
+            if (output_message.empty()) {
+                cout << err.what() << '\n';
+            } else {
+                cout << err.what() << '\n';
+                std::wcout << output_message << '\n';
+            }
+        } catch (const std::exception &err) {
+            cout << err.what() << '\n';
+        }
     }
 
     return 0;

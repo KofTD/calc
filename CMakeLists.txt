@@ -7,4 +7,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(calculator main.cpp operand.cpp operand.h
         notation_operations.cpp
-        notation_operations.h)
+        notation_operations.h
+        variables.cpp
+        variables.h
+        calculations.cpp
+        calculations.h)

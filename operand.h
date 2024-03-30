@@ -67,8 +67,8 @@ const std::map<std::string, int8_t> prefixes = {
 //   quecto = -30
 // };
 
-const std::map<std::string, std::array<int8_t, n_of_base_units>>
-    physical_units = {
+const std::map<std::string, std::array<float, n_of_base_units>> physical_units =
+    {
         {"s",   {1, 0, 0, 0, 0, 0, 0}  },
         {"m",   {0, 1, 0, 0, 0, 0, 0}  },
         {"g",   {0, 0, 1, 0, 0, 0, 0}  },
@@ -94,23 +94,24 @@ const std::map<std::string, std::array<int8_t, n_of_base_units>>
         {"lx",  {0, -2, 0, 0, 0, 0, 1} },
         {"Gy",  {-2, 2, 0, 0, 0, 0, 0} },
         {"Sv",  {-2, 2, 0, 0, 0, 0, 0} },
-        {"kat", {-1, 0, 0, 0, 0, 1, 0} }
+        {"kat", {-1, 0, 0, 0, 0, 1, 0} },
+        {"m/s", {-1, 1, 0, 0, 0, 0, 0} }
 };
 
 // --------------------------------------------
 
-double ten_to_pow(int8_t power);
+double ten_to_pow(float power);
 
-bool is_equal(std::array<int8_t, n_of_base_units> lhs,
-              std::array<int8_t, n_of_base_units> rhs);
+bool is_equal(std::array<float, n_of_base_units> lhs,
+              std::array<float, n_of_base_units> rhs);
 
-std::array<int8_t, n_of_base_units> sum_b_u_powers(
-    std::array<int8_t, n_of_base_units> lhs,
-    std::array<int8_t, n_of_base_units> rhs);
+std::array<float, n_of_base_units> sum_b_u_powers(
+    std::array<float, n_of_base_units> lhs,
+    std::array<float, n_of_base_units> rhs);
 
-std::array<int8_t, n_of_base_units> dif_b_u_powers(
-    std::array<int8_t, n_of_base_units> lhs,
-    std::array<int8_t, n_of_base_units> rhs);
+std::array<float, n_of_base_units> dif_b_u_powers(
+    std::array<float, n_of_base_units> lhs,
+    std::array<float, n_of_base_units> rhs);
 
 class operand {
    public:
@@ -119,56 +120,77 @@ class operand {
 
     explicit operand(std::string token);
 
+    operand() = default;
+    operand(const operand &) = default;
+    operand(operand &&) = default;
+
+    operand &operator=(const operand &) = default;
+    operand &operator=(operand &&) = default;
+
     operand operator+(const operand &rhs) const;
     operand operator-(const operand &rhs) const;
     operand operator*(const operand &rhs) const;
     operand operator/(const operand &rhs) const;
 
     [[nodiscard]] operand power(const operand &rhs) const;
+    void convert(const operand &rhs);
 
-    std::string to_string();
+    [[nodiscard]] std::wstring to_wstring() const;
+
+    [[nodiscard]] double get_number() const;
+    void set_number(double number);
+    [[nodiscard]] int8_t get_prefix() const;
+    void set_prefix(int8_t prefix);
+    [[nodiscard]] const std::array<float, n_of_base_units> &
+    get_basic_units_powers() const;
+    void set_basic_units_powers(
+        const std::array<float, n_of_base_units> &basicUnitsPowers);
+
+    void sqrt();
 
    protected:
     operand(double number, int8_t prefix,
-            std::array<int8_t, n_of_base_units> b_u_powers)
+            std::array<float, n_of_base_units> b_u_powers)
         : number(number), prefix(prefix), basic_units_powers(b_u_powers) {}
 
    private:
-    double number;
+    double number{0};
     int8_t prefix = 0;
-    std::array<int8_t, n_of_base_units> basic_units_powers = {
+    std::array<float, n_of_base_units> basic_units_powers = {
         0, 0, 0, 0, 0, 0, 0};  // Order: s, m, g, A, K, mol, cd
 };
 
 // Errors
-class unknown_unit_err : public std::exception {
-   public:
-    explicit unknown_unit_err(std::string message);
-    [[nodiscard]] const char *what() const noexcept override {
-        return message.c_str();
-    }
-
-   private:
-    std::string message;
-};
-
-class unknown_prefix_err : public std::exception {
+class unknown_unit_part_error : public std::exception {
    private:
     std::string message;
 
    public:
-    explicit unknown_prefix_err(std::string message);
+    explicit unknown_unit_part_error(std::string message);
     [[nodiscard]] const char *what() const noexcept override {
         return message.c_str();
     }
 };
 
-class non_additive_units_err : public std::exception {
+class unequal_units_err : public std::exception {
+   private:
+    std::string sys_message;
+    std::wstring output_message;
+
+   public:
+    const std::wstring &get_output_message() const;
+    explicit unequal_units_err(std::string message);
+    unequal_units_err(std::string sysMessage, std::wstring outputMessage);
+    [[nodiscard]] const char *what() const noexcept override {
+        return sys_message.c_str();
+    }
+};
+class function_err : public std::exception {
    private:
     std::string message;
 
    public:
-    explicit non_additive_units_err(std::string message);
+    explicit function_err(std::string message);
     [[nodiscard]] const char *what() const noexcept override {
         return message.c_str();
     }

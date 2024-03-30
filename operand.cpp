@@ -10,24 +10,24 @@
 namespace expression {
 int8_t str_to_prefix(const std::string &prefix) {
     if (!prefixes.contains(prefix)) {
-        throw expression::unknown_prefix_err("Unknown prefix: " + prefix);
+        throw expression::unknown_unit_part_error("Unknown prefix: " + prefix);
     }
 
     return prefixes.at(prefix);
 }
 
-std::array<int8_t, n_of_base_units> convert_to_basic_units(
+std::array<float, n_of_base_units> convert_to_basic_units(
     const std::string &unit) {
     if (!physical_units.contains(unit)) {
-        throw expression::unknown_unit_err("Unknown unit: " + unit);
+        throw expression::unknown_unit_part_error("Unknown unit: " + unit);
     }
 
     return physical_units.at(unit);
 }
 
-std::pair<int8_t, std::array<int8_t, n_of_base_units>> split_prefix_and_unit(
+std::pair<int8_t, std::array<float, n_of_base_units>> split_prefix_and_unit(
     const std::string &prefix_and_unit) {
-    std::pair<int8_t, std::array<int8_t, n_of_base_units>> result;
+    std::pair<int8_t, std::array<float, n_of_base_units>> result;
 
     if (prefix_and_unit.length() >= 2) {
         auto sample = prefix_and_unit.substr(0, 3);
@@ -53,10 +53,10 @@ std::pair<int8_t, std::array<int8_t, n_of_base_units>> split_prefix_and_unit(
     return result;
 }
 
-std::array<int8_t, n_of_base_units> dif_b_u_powers(
-    std::array<int8_t, n_of_base_units> lhs,
-    std::array<int8_t, n_of_base_units> rhs) {
-    std::array<int8_t, n_of_base_units> result = {0, 0, 0, 0, 0, 0, 0};
+std::array<float, n_of_base_units> dif_b_u_powers(
+    std::array<float, n_of_base_units> lhs,
+    std::array<float, n_of_base_units> rhs) {
+    std::array<float, n_of_base_units> result = {0, 0, 0, 0, 0, 0, 0};
 
     for (size_t i = 0; i < lhs.size(); ++i) {
         result.at(i) = static_cast<int8_t>(lhs.at(i) - rhs.at(i));
@@ -65,10 +65,10 @@ std::array<int8_t, n_of_base_units> dif_b_u_powers(
     return result;
 }
 
-std::array<int8_t, n_of_base_units> sum_b_u_powers(
-    std::array<int8_t, n_of_base_units> lhs,
-    std::array<int8_t, n_of_base_units> rhs) {
-    std::array<int8_t, n_of_base_units> result = {0, 0, 0, 0, 0, 0, 0};
+std::array<float, n_of_base_units> sum_b_u_powers(
+    std::array<float, n_of_base_units> lhs,
+    std::array<float, n_of_base_units> rhs) {
+    std::array<float, n_of_base_units> result = {0, 0, 0, 0, 0, 0, 0};
 
     for (size_t i = 0; i < lhs.size(); ++i) {
         result.at(i) = static_cast<int8_t>(lhs.at(i) + rhs.at(i));
@@ -77,8 +77,8 @@ std::array<int8_t, n_of_base_units> sum_b_u_powers(
     return result;
 }
 
-bool is_equal(std::array<int8_t, n_of_base_units> lhs,
-              std::array<int8_t, n_of_base_units> rhs) {
+bool is_equal(std::array<float, n_of_base_units> lhs,
+              std::array<float, n_of_base_units> rhs) {
     return std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
@@ -96,16 +96,19 @@ double ten_to_pow(int8_t power) {
     return result;
 }
 
-unknown_unit_err::unknown_unit_err(std::string message)
-    : message(std::move(message)) {}
-unknown_prefix_err::unknown_prefix_err(std::string message)
-    : message(std::move(message)) {}
-non_additive_units_err::non_additive_units_err(std::string message)
-    : message(std::move(message)) {}
+unequal_units_err::unequal_units_err(std::string message)
+    : sys_message(std::move(message)) {}
+unequal_units_err::unequal_units_err(std::string sysMessage,
+                                     std::wstring outputMessage)
+    : sys_message(std::move(sysMessage)),
+      output_message(std::move(outputMessage)) {}
+const std::wstring &unequal_units_err::get_output_message() const {
+    return output_message;
+}
 
 operand operand::operator+(const operand &rhs) const {
     if (!is_equal(this->basic_units_powers, rhs.basic_units_powers)) {
-        throw non_additive_units_err("Non-additive units");
+        throw unequal_units_err("Non-additive units");
     }
 
     double n_number = (this->number * ten_to_pow(this->prefix)) +
@@ -121,7 +124,7 @@ operand operand::operator+(const operand &rhs) const {
 
 operand operand::operator-(const operand &rhs) const {
     if (!is_equal(this->basic_units_powers, rhs.basic_units_powers)) {
-        throw non_additive_units_err("Non-additive units");
+        throw unequal_units_err("Non-additive units");
     }
 
     double n_number = (this->number * ten_to_pow(this->prefix)) -
@@ -136,9 +139,8 @@ operand operand::operator-(const operand &rhs) const {
 }
 
 operand operand::operator*(const operand &rhs) const {
-    double n_number = this->number *
-                      ten_to_pow(static_cast<int8_t>(this->prefix)) *
-                      rhs.number * ten_to_pow(static_cast<int8_t>(rhs.prefix));
+    double n_number = this->number * ten_to_pow(this->prefix) * rhs.number *
+                      ten_to_pow(rhs.prefix);
     int8_t n_prefix = std::min(this->prefix, rhs.prefix);
 
     return {n_number, n_prefix,
@@ -146,9 +148,8 @@ operand operand::operator*(const operand &rhs) const {
 }
 
 operand operand::operator/(const operand &rhs) const {
-    double n_number = this->number *
-                      ten_to_pow(static_cast<int8_t>(this->prefix)) /
-                      rhs.number * ten_to_pow(static_cast<int8_t>(rhs.prefix));
+    double n_number = this->number * ten_to_pow(this->prefix) / rhs.number *
+                      ten_to_pow(rhs.prefix);
     int8_t n_prefix = std::min(this->prefix, rhs.prefix);
 
     return {n_number, n_prefix,
@@ -157,12 +158,12 @@ operand operand::operator/(const operand &rhs) const {
 
 operand operand::power(const operand &rhs) const {
     if (!is_equal(rhs.basic_units_powers, {0, 0, 0, 0, 0, 0, 0})) {
-        throw std::exception();
+        throw function_err("Power must be a scalar");
     }
 
     double n_number = std::pow(this->number, rhs.number);
 
-    std::array<int8_t, n_of_base_units> n_powers = {0, 0, 0, 0, 0, 0, 0};
+    std::array<float, n_of_base_units> n_powers = {0, 0, 0, 0, 0, 0, 0};
 
     for (size_t i = 0; i < n_powers.size(); ++i) {
         n_powers.at(i) = static_cast<int8_t>(basic_units_powers.at(i) *
@@ -191,6 +192,17 @@ operand::operand(std::string token) {
             this->number *= 3600;  // NOLINT
             this->prefix = 0;
             this->basic_units_powers = {1, 0, 0, 0, 0, 0, 0};
+        } else if (unit_part == "l") {
+            this->number *= 0.001;
+            this->prefix = 0;
+            this->basic_units_powers = {0, 3, 0, 0, 0, 0, 0};
+        } else if (unit_part == "deg") {
+            this->number *= 3.14159265358979323846 / 180;
+            this->prefix = 0;
+            this->basic_units_powers = {0, 0, 0, 0, 0, 0, 0};
+        } else if (unit_part == "mol") {
+            this->prefix = 0;
+            this->basic_units_powers = {0, 0, 0, 0, 0, 1, 0};
         } else {
             auto prefix_and_unit = split_prefix_and_unit(unit_part);
 
@@ -200,62 +212,155 @@ operand::operand(std::string token) {
     }
 }
 
-std::string operand::to_string() {
-    std::stringstream result;
+std::wstring unit_powers_to_string(std::array<float, n_of_base_units> powers) {
+    std::wstringstream result;
 
-    result << this->number << ' ';
+    for (size_t i = 0; i < powers.size(); i++) {
+        if (powers.at(i) == 0) {
+            continue;
+        }
+        if (i == 0) {
+            result << "s";
+        } else if (i == 1) {
+            result << "m";
+        } else if (i == 2) {
+            result << "g";
+        } else if (i == 3) {
+            result << "A";
+        } else if (i == 4) {
+            result << "K";
+        } else if (i == 5) {
+            result << "mol";
+        } else {
+            result << "cd";
+        }
+
+        auto power = std::to_string(static_cast<int>(powers.at(i)));
+
+        for (const auto &chr : power) {
+            if (chr == '-') {
+                result << "⁻";
+            } else if (chr == '1') {
+                result << "¹";
+            } else if (chr == '2') {
+                result << "²";
+            } else if (chr == '3') {
+                result << "³";
+            } else if (chr == '4') {
+                result << "⁴";
+            } else if (chr == '5') {
+                result << "⁵";
+            } else if (chr == '6') {
+                result << "⁶";
+            } else if (chr == '7') {
+                result << "⁷";
+            } else if (chr == '8') {
+                result << "⁸";
+            } else if (chr == '9') {
+                result << "⁹";
+            } else {
+                result << "⁰";
+            }
+        }
+        result << "∙";
+    }
+
+    return result.str().substr(0, result.str().length() - 3);
+}
+
+std::wstring operand::to_wstring() const {
+    std::wstringstream result;
 
     std::string unit;
     for (const auto &[ph_unit, unit_powers] : physical_units) {
         if (is_equal(unit_powers, this->basic_units_powers)) {
             unit = ph_unit;
+            break;
         }
     }
 
-    if (this->prefix != 0 && !unit.empty()) {
-        for (const auto &[prefix, prefix_power] : prefixes) {
+    std::string prefix;
+    if (this->prefix != 0) {
+        for (const auto &[ph_prefix, prefix_power] : prefixes) {
             if (prefix_power == this->prefix) {
-                result << prefix;
+                prefix = ph_prefix;
                 break;
             }
         }
     }
 
     if (unit.empty()) {
-        for (size_t i = 0; i < this->basic_units_powers.size(); i++) {
-            if (this->basic_units_powers.at(i) == 0) {
-                continue;
-            }
-            switch (i) {
-                case 0:
-                    result << "s";
-                    break;
-                case 1:
-                    result << "m";
-                    break;
-                case 2:
-                    result << "g";
-                    break;
-                case 3:
-                    result << "A";
-                    break;
-                case 4:
-                    result << "K";
-                    break;
-                case 5:
-                    result << "mol";
-                    break;
-                case 6:
-                    result << "cd";
-                    break;
-            }
-
-            result << "^" << static_cast<int>(basic_units_powers.at(i)) << '*';
-        }
+        result << this->number * ten_to_pow(this->prefix) << ' '
+               << unit_powers_to_string(this->basic_units_powers);
     } else {
-        result << unit;
+        if (this->prefix != 0) {
+            result << this->number << ' '
+                   << std::wstring(prefix.begin(), prefix.end());
+        } else {
+            result << this->number << ' ';
+        }
+        result << std::wstring(unit.begin(), unit.end());
     }
 
-    return result.str().substr(0, result.str().length() - 1);
+    return result.str();
 };
+bool can_convert(std::array<float, n_of_base_units> lhs,
+                 std::array<float, n_of_base_units> rhs) {
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (lhs.at(i) > 0) {
+            if (rhs.at(i) == 0) return false;
+        }
+    }
+
+    return true;
+}
+void operand::convert(const operand &rhs) {
+    if (!can_convert(this->basic_units_powers, rhs.basic_units_powers)) {
+        std::wstringstream message;
+        message << "Left hand expression: ";
+
+        message << unit_powers_to_string(this->basic_units_powers) << '\n';
+        message << "Right hand expression: ";
+        message << unit_powers_to_string(rhs.basic_units_powers);
+
+        throw unequal_units_err("Can't convert units", message.str());
+    }
+
+    for (size_t i = 0; i < this->basic_units_powers.size(); i++) {
+        if (this->basic_units_powers.at(i) == 0) continue;
+
+        auto diff = static_cast<int8_t>(this->basic_units_powers.at(i) -
+                                        rhs.basic_units_powers.at(i));
+
+        if (diff != 0) diff -= 1;
+
+        this->basic_units_powers.at(i) = rhs.basic_units_powers.at(i);
+
+        this->number *= ten_to_pow(diff);
+    }
+
+    if (this->prefix != rhs.prefix) {
+        this->number *=
+            ten_to_pow(static_cast<int8_t>(this->prefix - rhs.prefix));
+    }
+}
+double operand::get_number() const { return number; }
+void operand::set_number(double number) { operand::number = number; }
+int8_t operand::get_prefix() const { return prefix; }
+void operand::set_prefix(int8_t prefix) { operand::prefix = prefix; }
+const std::array<float, n_of_base_units> &operand::get_basic_units_powers()
+    const {
+    return basic_units_powers;
+}
+void operand::set_basic_units_powers(
+    const std::array<float, n_of_base_units> &basicUnitsPowers) {
+    basic_units_powers = basicUnitsPowers;
+}
+void operand::sqrt() {
+    this->number = std::sqrt(this->number);
+    for (auto &power : basic_units_powers) power /= 2;
+}
+function_err::function_err(std::string message) : message(std::move(message)) {}
+unknown_unit_part_error::unknown_unit_part_error(std::string message)
+    : message(std::move(message)){};
 }  // namespace expression
