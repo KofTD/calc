@@ -341,6 +341,7 @@ void operand::convert(const operand &rhs) {
         this->number *=
             ten_to_pow(static_cast<int8_t>(this->prefix - rhs.prefix));
     }
+    this->prefix = rhs.prefix;
 }
 double operand::get_number() const { return number; }
 const std::array<float, n_of_base_units> &operand::get_basic_units_powers()
