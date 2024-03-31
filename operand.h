@@ -138,13 +138,8 @@ class operand {
     [[nodiscard]] std::wstring to_wstring() const;
 
     [[nodiscard]] double get_number() const;
-    void set_number(double number);
-    [[nodiscard]] int8_t get_prefix() const;
-    void set_prefix(int8_t prefix);
     [[nodiscard]] const std::array<float, n_of_base_units> &
     get_basic_units_powers() const;
-    void set_basic_units_powers(
-        const std::array<float, n_of_base_units> &basicUnitsPowers);
 
     void sqrt();
 

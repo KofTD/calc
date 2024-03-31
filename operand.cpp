@@ -139,18 +139,16 @@ operand operand::operator-(const operand &rhs) const {
 }
 
 operand operand::operator*(const operand &rhs) const {
-    double n_number = this->number * ten_to_pow(this->prefix) * rhs.number *
-                      ten_to_pow(rhs.prefix);
-    int8_t n_prefix = std::min(this->prefix, rhs.prefix);
+    double n_number = this->number * rhs.number;
+    auto n_prefix = static_cast<int8_t>(this->prefix + rhs.prefix);
 
     return {n_number, n_prefix,
             sum_b_u_powers(this->basic_units_powers, rhs.basic_units_powers)};
 }
 
 operand operand::operator/(const operand &rhs) const {
-    double n_number = this->number * ten_to_pow(this->prefix) / rhs.number *
-                      ten_to_pow(rhs.prefix);
-    int8_t n_prefix = std::min(this->prefix, rhs.prefix);
+    double n_number = this->number / rhs.number;
+    auto n_prefix = static_cast<int8_t>(this->prefix - rhs.prefix);
 
     return {n_number, n_prefix,
             dif_b_u_powers(this->basic_units_powers, rhs.basic_units_powers)};
@@ -170,7 +168,7 @@ operand operand::power(const operand &rhs) const {
                                              static_cast<int8_t>(rhs.number));
     }
 
-    return {n_number, this->prefix, n_powers};
+    return {n_number, static_cast<int8_t>(this->prefix * rhs.number), n_powers};
 }
 
 operand::operand(std::string token) {
@@ -293,11 +291,11 @@ std::wstring operand::to_wstring() const {
         result << this->number * ten_to_pow(this->prefix) << ' '
                << unit_powers_to_string(this->basic_units_powers);
     } else {
-        if (this->prefix != 0) {
+        if (!prefix.empty()) {
             result << this->number << ' '
                    << std::wstring(prefix.begin(), prefix.end());
         } else {
-            result << this->number << ' ';
+            result << this->number * ten_to_pow(this->prefix) << ' ';
         }
         result << std::wstring(unit.begin(), unit.end());
     }
@@ -345,16 +343,9 @@ void operand::convert(const operand &rhs) {
     }
 }
 double operand::get_number() const { return number; }
-void operand::set_number(double number) { operand::number = number; }
-int8_t operand::get_prefix() const { return prefix; }
-void operand::set_prefix(int8_t prefix) { operand::prefix = prefix; }
 const std::array<float, n_of_base_units> &operand::get_basic_units_powers()
     const {
     return basic_units_powers;
-}
-void operand::set_basic_units_powers(
-    const std::array<float, n_of_base_units> &basicUnitsPowers) {
-    basic_units_powers = basicUnitsPowers;
 }
 void operand::sqrt() {
     this->number = std::sqrt(this->number);

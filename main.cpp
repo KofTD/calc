@@ -14,6 +14,7 @@ using std::string;
 using std::vector;
 
 int main() {
+    auto variables = load_variables();
     while (true) {
         cout << ">>> ";
         std::string input;
@@ -24,8 +25,6 @@ int main() {
         }
 
         try {
-            auto variables = load_variables();
-
             auto tokens = split_into_tokens(input);
 
             if (tokens[0].substr(0, 3) == "let") {
@@ -35,6 +34,14 @@ int main() {
 
                 variables[var_name] =
                     calculate(to_postfix_notation(expr_tokens), variables);
+                continue;
+            }
+            if (tokens[0] == "list") {
+                for (const auto &[var_name, var_value] : variables) {
+                    std::wcout << std::wstring(var_name.begin(), var_name.end())
+                               << '\t' << var_value.to_wstring() << std::endl;
+                }
+                continue;
             }
 
             auto postfix_notation = to_postfix_notation(tokens);
