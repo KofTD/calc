@@ -44,6 +44,8 @@ expression::operand calculate(
             auto op = calculations.top();
             calculations.pop();
             calculations.push(mfunction_call(*ptr, op));
+        } else if (variables.contains(token)) {
+            calculations.push(variables.at(token));
         } else {
             auto has_digits = [](std::string token) {
                 namespace sr = std::ranges;
