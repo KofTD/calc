@@ -7,5 +7,6 @@
 /dataSources/
 /dataSources.local.xml
 /build/
+/.idea
 /.cache/
 /compile_commands.json
